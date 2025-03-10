@@ -1,0 +1,66 @@
+/* Base navbar styles */
+.navbar-container {
+  max-width: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  height: 64px; /* Fixed height for consistency */
+}
+
+/* Navbar mobile fixes */
+@media (max-width: 640px) {
+  .navbar-container {
+    padding: 0.75rem 1rem; /* Adjust padding for mobile */
+  }
+
+  .navbar-title {
+    margin-left: 2.5rem; /* Space for menu button */
+    font-size: 1.1rem; /* Slightly smaller font on mobile */
+  }
+  
+  /* Ensure the navbar doesn't overflow */
+  nav {
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  /* Fix for zooming issues */
+  body {
+    touch-action: manipulation;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Adjust GitHub link spacing on mobile */
+  .navbar-container a {
+    padding: 0.5rem;
+  }
+
+  /* Ensure theme toggle button doesn't get squished */
+  .navbar-container .flex.items-center.gap-4 {
+    gap: 0.5rem;
+  }
+  
+  /* Fix for icon scaling */
+  svg {
+    transform-origin: center;
+    max-height: 18px;
+    max-width: 18px;
+  }
+}
+
+/* Transitions for smooth mobile interactions */
+.navbar-title {
+  transition: margin-left 0.3s ease;
+}
+
+/* Ensure content doesn't overflow */
+.navbar-container > div {
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* Fix for any potential overflow issues */
+.navbar-container {
+  max-width: 100%;
+  overflow-x: hidden;
+} 
