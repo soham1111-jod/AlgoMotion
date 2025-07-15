@@ -14,7 +14,7 @@ export default function Navbar() {
             
             <div className="flex items-center space-x-2 sm:space-x-4">
                 <a 
-                    href="https://github.com/yourusername/ds-algo-visualizer" 
+                    href="https://github.com/soham1111-jod/ds-algo-visualizer_nexus_project_sohamchafale" 
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="flex items-center gap-2 p-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
