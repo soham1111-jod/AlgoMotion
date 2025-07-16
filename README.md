@@ -2,6 +2,8 @@
 
 This project is a Data Structures and Algorithms Visualizer built with React and Vite. It provides an interactive platform for users to engage with various algorithms in real-time, allowing them to visualize the execution of algorithms and understand their mechanics.
 
+# Demo Link - https://dsalgovisualize-sohamchafale.netlify.app/
+
 ## Features
 
 - **Algorithm Visualizer**: Users can select different algorithms to visualize their execution step-by-step.
