@@ -489,6 +489,9 @@ export default function Visualizer() {
   const [draggedItem, setDraggedItem] = useState(null);
   const [stepHistory, setStepHistory] = useState([]);
   const dropAreaRef = useRef(null);
+  const [shouldPlay, setShouldPlay] = useState(false); // NEW: flag to trigger play after state updates
+  const prevCategoryRef = useRef(category);
+  const prevAlgorithmRef = useRef(algorithm);
   
   // Clean up styles when component unmounts
   useEffect(() => {
@@ -713,75 +716,73 @@ export default function Visualizer() {
   // Generate initial random array
   useEffect(() => {
     console.log('Initial setup effect running');
-    
-    // Only generate a new array on initial mount
     if (array.length === 0) {
       console.log('No array found, generating initial array');
       generateNewArray();
     }
-    
-    // Generate a new graph when category changes to 'graph'
     if (category === 'graph' && (!graph || !graph.nodes || !graph.edges)) {
       console.log('No graph found or category changed to graph, generating new graph');
       generateNewGraph();
     }
   }, [category, generateNewArray, array.length, generateNewGraph, graph]);
 
-  // Reset visualization when algorithm or category changes
+  // Only reset/generate steps if category or algorithm actually changed
   useEffect(() => {
-    console.log('Algorithm/category change effect running:', { category, algorithm });
-    
-    // Stop any running animation when algorithm or category changes
-    if (isPlaying) {
-      console.log('Stopping animation due to algorithm or category change');
-      pause();
-    }
-    
-    // Skip if we don't have a valid algorithm
-    if (!algorithmConfig[category]?.algorithms[algorithm]) {
-      console.log('No valid algorithm found:', { category, algorithm });
-      return;
-    }
-    
-    // Reset step state
-    setCurrentStep(0);
-    setStepHistory([]);
-    
-    // For sorting and searching, ensure we have a valid array
-    if ((category === 'sorting' || category === 'searching') && array.length > 0) {
-      console.log('Generating steps for sorting/searching with existing array');
-      try {
-        const algorithmFn = algorithmConfig[category].algorithms[algorithm];
-        const success = generateSteps(algorithmFn, array);
-        console.log('Steps generation result:', { success, stepsCount: steps.length });
-      } catch (error) {
-        console.error('Error generating steps for algorithm change:', error);
+    const prevCategory = prevCategoryRef.current;
+    const prevAlgorithm = prevAlgorithmRef.current;
+    if (category !== prevCategory || algorithm !== prevAlgorithm) {
+      console.log('Algorithm/category change effect running:', { category, algorithm });
+      // Stop any running animation when algorithm or category changes
+      if (isPlaying) {
+        console.log('Stopping animation due to algorithm or category change');
+        pause();
+      }
+      // Skip if we don't have a valid algorithm
+      if (!algorithmConfig[category]?.algorithms[algorithm]) {
+        console.log('No valid algorithm found:', { category, algorithm });
+        prevCategoryRef.current = category;
+        prevAlgorithmRef.current = algorithm;
+        return;
+      }
+      // Reset step state
+      setCurrentStep(0);
+      setStepHistory([]);
+      // For sorting and searching, ensure we have a valid array
+      if ((category === 'sorting' || category === 'searching') && array.length > 0) {
+        console.log('Generating steps for sorting/searching with existing array');
+        try {
+          const algorithmFn = algorithmConfig[category].algorithms[algorithm];
+          const success = generateSteps(algorithmFn, array);
+          console.log('Steps generation result:', { success, stepsCount: steps.length });
+        } catch (error) {
+          console.error('Error generating steps for algorithm change:', error);
+        }
+      }
+      // For graph algorithms, ensure we have a valid graph
+      if (category === 'graph' && graph && graph.nodes && graph.edges) {
+        console.log('Generating steps for graph with existing graph');
+        try {
+          const algorithmFn = algorithmConfig[category].algorithms[algorithm];
+          const success = generateSteps(algorithmFn, graph);
+          console.log('Steps generation result:', { success, stepsCount: steps.length });
+        } catch (error) {
+          console.error('Error generating steps for algorithm change:', error);
+        }
+      }
+      // For other categories (dp, math), generate steps if we have a valid algorithm
+      if ((category === 'dp' || category === 'math') && algorithmConfig[category]?.algorithms[algorithm]) {
+        console.log('Generating steps for', category);
+        try {
+          const algorithmFn = algorithmConfig[category].algorithms[algorithm];
+          const success = generateSteps(algorithmFn, null);
+          console.log('Steps generation result:', { success, stepsCount: steps.length });
+        } catch (error) {
+          console.error('Error generating steps for algorithm change:', error);
+        }
       }
     }
-    
-    // For graph algorithms, ensure we have a valid graph
-    if (category === 'graph' && graph && graph.nodes && graph.edges) {
-      console.log('Generating steps for graph with existing graph');
-      try {
-        const algorithmFn = algorithmConfig[category].algorithms[algorithm];
-        const success = generateSteps(algorithmFn, graph);
-        console.log('Steps generation result:', { success, stepsCount: steps.length });
-      } catch (error) {
-        console.error('Error generating steps for algorithm change:', error);
-      }
-    }
-    
-    // For other categories (dp, math), generate steps if we have a valid algorithm
-    if ((category === 'dp' || category === 'math') && algorithmConfig[category]?.algorithms[algorithm]) {
-      console.log('Generating steps for', category);
-      try {
-        const algorithmFn = algorithmConfig[category].algorithms[algorithm];
-        const success = generateSteps(algorithmFn, null);
-        console.log('Steps generation result:', { success, stepsCount: steps.length });
-      } catch (error) {
-        console.error('Error generating steps for algorithm change:', error);
-      }
-    }
+    prevCategoryRef.current = category;
+    prevAlgorithmRef.current = algorithm;
   }, [category, algorithm, array, graph, algorithmConfig, generateSteps, setCurrentStep, steps.length, isPlaying, pause]);
 
   // Get color based on theme
@@ -1630,110 +1631,55 @@ export default function Visualizer() {
       category, 
       algorithm
     });
-    
     // If already playing, just pause
     if (isPlaying) {
       console.log('Pausing animation');
       pause();
       return;
     }
-    
     // If at the end of steps, reset to beginning
-    if (currentStep >= steps.length - 1 && steps.length > 0) {
-      console.log('Resetting to beginning before playing');
+    if (steps.length > 0 && currentStep >= steps.length - 1) {
       setCurrentStep(0);
-      
-      // Use a small delay to ensure state is updated
-      setTimeout(() => {
-        console.log('Playing after reset');
-        play();
-      }, 50);
+      setShouldPlay(true); // trigger play after reset
       return;
     }
-    
-    // Check if we have steps to visualize
+    // If no steps, generate them and trigger play after
     if (steps.length === 0) {
-      console.log('No steps available, generating steps...');
-      
-      // For sorting and searching, ensure we have a valid array
       if ((category === 'sorting' || category === 'searching') && (!array || array.length === 0)) {
-        console.log('No valid array for sorting/searching, generating a new one');
         generateNewArray();
-        // Wait for the array to be generated before continuing
-        setTimeout(() => handlePlayButtonClick(), 100);
+        setShouldPlay(true); // trigger play after array/steps are ready
         return;
       }
-      
-      // For graph algorithms, ensure we have a valid graph
       if (category === 'graph' && (!graph || !graph.nodes || !graph.edges)) {
-        console.log('No valid graph found, generating a new one');
         generateNewGraph();
-        // Wait for the graph to be generated before continuing
-        setTimeout(() => handlePlayButtonClick(), 100);
+        setShouldPlay(true); // trigger play after graph/steps are ready
         return;
       }
-      
-      // Try to generate steps if none exist
       if (algorithmConfig[category]?.algorithms[algorithm]) {
         let input = algorithmConfig[category].input;
-        
-        if (!input) {
-          console.log('No valid input for algorithm');
-          return;
-        }
-        
-        console.log('Generating steps with input:', { 
-          category, 
-          algorithm, 
-          inputType: typeof input
-        });
-        
-        try {
-          const success = generateSteps(
-            algorithmConfig[category].algorithms[algorithm], 
-            input
-          );
-          console.log('Generated steps on play:', { success, stepsCount: steps.length });
-          
-          // If steps were generated successfully, play the animation
-          if (success) {
-            console.log('Starting animation after generating steps');
-            // Use a small delay to ensure state is updated
-            setTimeout(() => {
-              console.log('Playing animation');
-              play();
-            }, 50);
-          } else {
-            console.log('Failed to generate steps, trying again with delay');
-            // Try again with a delay
-            setTimeout(() => handlePlayButtonClick(), 100);
-          }
-        } catch (error) {
-          console.error('Error generating steps:', error);
-        }
+        if (!input) return;
+        generateSteps(
+          algorithmConfig[category].algorithms[algorithm],
+          input
+        );
+        setShouldPlay(true); // trigger play after steps are ready
         return;
       }
     }
-    
     // If we have steps and we're not at the end, just play
-    console.log('Starting animation with existing steps');
     play();
-  }, [
-    isPlaying, 
-    currentStep, 
-    steps.length, 
-    category, 
-    algorithm, 
-    algorithmConfig, 
-    array, 
-    graph, 
-    generateNewArray, 
-    generateNewGraph, 
-    generateSteps, 
-    play, 
-    pause, 
-    setCurrentStep
-  ]);
+  }, [isPlaying, currentStep, steps.length, category, algorithm, algorithmConfig, array, graph, generateNewArray, generateNewGraph, generateSteps, play, pause, setCurrentStep]);
+
+  // NEW: Effect to trigger play after steps/currentStep update
+  useEffect(() => {
+    if (shouldPlay) {
+      // Only play if steps are available and currentStep is at 0
+      if (steps.length > 0 && currentStep === 0 && !isPlaying) {
+        play();
+        setShouldPlay(false);
+      }
+    }
+  }, [shouldPlay, steps.length, currentStep, isPlaying, play]);
 
   // Update the play button text based on the current state
   const getPlayButtonText = () => {
